@@ -1,0 +1,260 @@
+import pyxel
+
+# 画面サイズ
+W, H = 256, 256
+
+# タイルサイズ（Editor側のタイルに合わせる）
+TILE = 16
+
+# 当たり判定にするタイル番号（ここは自分のタイルに合わせて変える）
+# 例: 地面タイルが (0,0) なら tile_id = 0 になることが多い（環境で変わる）
+SOLID_TILES = {0}
+
+class Player:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.w = 12
+        self.h = 14
+
+        self.vx = 0
+        self.vy = 0
+        self.on_ground = False
+
+    def update(self, tm):
+        # 入力
+        speed = 1.6
+        if pyxel.btn(pyxel.KEY_LEFT):
+            self.vx = -speed
+        elif pyxel.btn(pyxel.KEY_RIGHT):
+            self.vx = speed
+        else:
+            self.vx = 0
+
+        # ジャンプ
+        if self.on_ground and pyxel.btnp(pyxel.KEY_SPACE):
+            self.vy = -5.5
+
+        # 重力
+        self.vy += 0.25
+        if self.vy > 6:
+            self.vy = 6
+
+        # X方向移動→衝突
+        self.x += self.vx
+        if self._hit_solid(tm):
+            # めり込んだので戻す（簡易）
+            self.x -= self.vx
+            # さらに押し戻しを丁寧にしたければ「1pxずつ」方式にする
+
+        # Y方向移動→衝突
+        self.y += self.vy
+        self.on_ground = False
+        if self._hit_solid(tm):
+            self.y -= self.vy
+            # 落下中に当たった＝着地
+            if self.vy > 0:
+                self.on_ground = True
+            self.vy = 0
+
+    def _hit_solid(self, tm):
+        # プレイヤー矩形の4点をタイル座標に変換してチェック
+        points = [
+            (self.x, self.y),
+            (self.x + self.w, self.y),
+            (self.x, self.y + self.h),
+            (self.x + self.w, self.y + self.h),
+        ]
+        for px, py in points:
+            tx = int(px // TILE)
+            ty = int(py // TILE)
+            tile = tm.pget(tx, ty)  # (u, v) の形で返る場合がある
+            tile_id = self._tile_to_id(tile)
+            if tile_id in SOLID_TILES:
+                return True
+        return False
+
+    def _tile_to_id(self, tile):
+        # pyxel.tilemap().pget は (u, v) を返す
+        # u,v を 0.. のタイル番号に変換（Image内の横タイル数で変わる）
+        if isinstance(tile, tuple):
+            u, v = tile
+            # Image1の横幅は 256px なので、16pxタイルなら横16枚
+            tiles_per_row = 256 // TILE
+            return v * tiles_per_row + u
+        return int(tile)
+
+    def draw(self):
+        # とりあえず四角。あとで pyxel.blt に置換
+        pyxel.rect(self.x, self.y, self.w, self.h, 11)
+
+class App:
+    def __init__(self):
+        pyxel.init(W, H, title="Fixed Background Mario-like")
+        # pyxel.load("assets.pyxres")  # Editorのリソースを使うなら有効化
+        self.tm = pyxel.tilemap(0)
+        self.player = Player(40, 40)
+        pyxel.run(self.update, self.draw)
+
+    def update(self):
+        if pyxel.btnp(pyxel.KEY_R):
+            self.player = Player(40, 40)
+
+        self.player.update(self.tm)
+
+        # 画面下に落ちたらリスタート
+        if self.player.y > H:
+            self.player = Player(40, 40)
+
+    def draw(self):
+        pyxel.cls(0)
+        # タイルマップ描画（背景固定）
+        pyxel.bltm(0, 0, 0, 0, 0, W, H)
+
+        self.player.draw()
+
+        pyxel.text(5, 5, "LEFT/RIGHT: move  SPACE: jump  R: reset", 7)
+
+App()
+import pyxel
+
+# 画面サイズ
+W, H = 256, 256
+
+# タイルサイズ（Editor側のタイルに合わせる）
+TILE = 16
+
+# 当たり判定にするタイル番号（ここは自分のタイルに合わせて変える）
+# 例: 地面タイルが (0,0) なら tile_id = 0 になることが多い（環境で変わる）
+SOLID_TILES = {0}
+
+class Player:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.w = 12
+        self.h = 14
+
+        self.vx = 0
+        self.vy = 0
+        self.on_ground = False
+
+    def update(self, tm):
+        # 入力
+        speed = 1.6
+        if pyxel.btn(pyxel.KEY_LEFT):
+            self.vx = -speed
+        elif pyxel.btn(pyxel.KEY_RIGHT):
+            self.vx = speed
+        else:
+            self.vx = 0
+
+        # ジャンプ
+        if self.on_ground and pyxel.btnp(pyxel.KEY_SPACE):
+            self.vy = -5.5
+
+        # 重力
+        self.vy += 0.25
+        if self.vy > 6:
+            self.vy = 6
+
+        # X方向移動→衝突
+        self.x += self.vx
+        if self._hit_solid(tm):
+            # めり込んだので戻す（簡易）
+            self.x -= self.vx
+            # さらに押し戻しを丁寧にしたければ「1pxずつ」方式にする
+
+        # Y方向移動→衝突
+        self.y += self.vy
+        self.on_ground = False
+        if self._hit_solid(tm):
+            self.y -= self.vy
+            # 落下中に当たった＝着地
+            if self.vy > 0:
+                self.on_ground = True
+            self.vy = 0
+
+    def _hit_solid(self, tm):
+        # プレイヤー矩形の4点をタイル座標に変換してチェック
+        points = [
+            (self.x, self.y),
+            (self.x + self.w, self.y),
+            (self.x, self.y + self.h),
+            (self.x + self.w, self.y + self.h),
+        ]
+        for px, py in points:
+            tx = int(px // TILE)
+            ty = int(py // TILE)
+            tile = tm.pget(tx, ty)  # (u, v) の形で返る場合がある
+            tile_id = self._tile_to_id(tile)
+            if tile_id in SOLID_TILES:
+                return True
+        return False
+
+    def _tile_to_id(self, tile):
+        # pyxel.tilemap().pget は (u, v) を返す
+        # u,v を 0.. のタイル番号に変換（Image内の横タイル数で変わる）
+        if isinstance(tile, tuple):
+            u, v = tile
+            # Image1の横幅は 256px なので、16pxタイルなら横16枚
+            tiles_per_row = 256 // TILE
+            return v * tiles_per_row + u
+        return int(tile)
+
+    def draw(self):
+        # とりあえず四角。あとで pyxel.blt に置換
+        pyxel.rect(self.x, self.y, self.w, self.h, 11)
+
+class App:
+    def __init__(self):
+        pyxel.init(W, H, title="Fixed Background Mario-like")
+        self.tm = pyxel.tilemap(0)
+        self.player = Player(40, 40)
+        self.score = 0
+        pyxel.run(self.update, self.draw)
+
+    def update(self):
+        self.player.update(self.tm)
+        self.score += 1  # 1フレームごとに増加（30fpsなら1秒で30増える）
+
+        if self.player.y > H:
+            self.player = Player(40, 40)
+            self.score = 0
+
+    def draw(self):
+        pyxel.cls(0)
+        pyxel.bltm(0, 0, 0, 0, 0, W, H)
+        self.player.draw()
+        pyxel.text(5, 5, f"SCORE: {self.score}", 7)
+App()
+
+class App:
+    def __init__(self):
+        pyxel.init(W, H, title="Fixed Background Mario-like")
+        # pyxel.load("assets.pyxres")  # Editorのリソースを使うなら有効化
+        self.tm = pyxel.tilemap(0)
+        self.player = Player(40, 40)
+        pyxel.run(self.update, self.draw)
+
+    def update(self):
+        if pyxel.btnp(pyxel.KEY_R):
+            self.player = Player(40, 40)
+
+        self.player.update(self.tm)
+
+        # 画面下に落ちたらリスタート
+        if self.player.y > H:
+            self.player = Player(40, 40)
+
+    def draw(self):
+        pyxel.cls(0)
+        # タイルマップ描画（背景固定）
+        pyxel.bltm(0, 0, 0, 0, 0, W, H)
+
+        self.player.draw()
+
+        pyxel.text(5, 5, "LEFT/RIGHT: move  SPACE: jump  R: reset", 7)
+
+App()
+
